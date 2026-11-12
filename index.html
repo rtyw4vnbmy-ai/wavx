@@ -41,7 +41,7 @@ h1,h2,h3{font-family:var(--display);font-weight:600;line-height:1.15;text-wrap:b
 .eyebrow{color:var(--gold);font-size:13px;letter-spacing:.28em;text-transform:uppercase;font-weight:500}
 
 /* header */
-header{position:sticky;top:0;z-index:20;background:rgba(13,13,14,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+header{position:sticky;top:0;z-index:20;background:rgba(13,13,14,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .bar{display:flex;align-items:center;gap:24px;min-height:72px}
 .logo{display:flex;align-items:center;gap:10px}
 .logo svg{width:40px;height:40px;flex:none}
@@ -237,7 +237,7 @@ header.sc .bar{min-height:58px}
 .art{cursor:pointer}
 .art::before{content:attr(data-hint);position:absolute;z-index:2;inset-inline:0;bottom:10px;text-align:center;font-size:12px;letter-spacing:.12em;color:#2a2418;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none}
 .card:hover .art::before{opacity:1;transform:none}
-#qv{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);display:grid;place-items:center;padding:16px;opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}
+#qv{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.72);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:grid;place-items:center;padding:16px;opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}
 #qv.open{opacity:1;visibility:visible}
 .qp{width:min(900px,100%);max-height:92vh;overflow:auto;background:var(--smoke);border:1px solid var(--line);display:grid;grid-template-columns:1.1fr 1fr;transform:translateY(24px) scale(.97);transition:transform .45s cubic-bezier(.2,.7,.2,1)}
 #qv.open .qp{transform:none}
@@ -276,7 +276,19 @@ header.sc .bar{min-height:58px}
   .logo b{font-size:26px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+/* iPhone/touch safety: drop GPU-heavy layers that can blank or crash mobile WebKit */
+@media (hover:none),(max-width:920px){
+  body::before{display:none}
+  .giant{will-change:auto;transform:none!important}
+  header,header.sc{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(13,13,14,.96)}
+  #qv{-webkit-backdrop-filter:none;backdrop-filter:none}
+}
 </style>
+<script>
+/* failsafe: if the page script fails, never leave the visitor on a blank/hidden page */
+(function(){function f(){document.documentElement.classList.remove("js");var p=document.getElementById("pre");if(p)p.style.display="none"}
+window.addEventListener("error",f);setTimeout(function(){if(!document.querySelector(".card"))f()},4000)})();
+</script>
 </head>
 <body>
 
@@ -470,7 +482,7 @@ const PRODUCTS=[
 const shirt=p=>`<img src="${IMG[p.img]}" alt="${p.en}">`;
 
 let lang=(()=>{try{return localStorage.getItem("wavx_lang")||"ar"}catch(e){return "ar"}})();
-let cart=(()=>{try{return JSON.parse(localStorage.getItem("wavx_cart")||"[]")}catch(e){return []}})();
+let cart=(()=>{try{const c=JSON.parse(localStorage.getItem("wavx_cart")||"[]");return Array.isArray(c)?c.filter(x=>x&&PRODUCTS.some(p=>p.id===x.id)&&x.qty>0):[]}catch(e){return []}})();
 const sel={}; PRODUCTS.forEach(p=>sel[p.id]="M");
 const $=s=>document.querySelector(s), t=k=>T[lang][k]||k;
 const cur=()=>lang==="ar"?CONFIG.currency_ar:CONFIG.currency_en;
@@ -595,10 +607,11 @@ function litStmt(){
   const n=Math.round(pr*sp.length);
   sp.forEach((x,i)=>x.classList.toggle("on",i<n));
 }
+const touch=matchMedia("(hover:none),(max-width:920px)").matches;
 const hdr=document.querySelector("header"),giant=document.querySelector(".giant");
 addEventListener("scroll",()=>{
   hdr.classList.toggle("sc",scrollY>40);
-  if(giant)giant.style.transform="translateX("+(scrollY*-.12)+"px)";
+  if(giant&&!touch)giant.style.transform="translateX("+(scrollY*-.12)+"px)";
   litStmt();
 },{passive:true});
 /* preloader */
